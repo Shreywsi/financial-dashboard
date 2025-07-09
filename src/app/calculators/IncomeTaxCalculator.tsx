@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 type AgeGroup = "<60" | "60-80" | ">80";
 type TaxRegime = "old" | "new";
@@ -28,12 +28,14 @@ const TAX_SLABS_NEW = [
   { min: 1500001, max: Infinity, rate: 30 }
 ];
 
-const EXEMPTION_LIMITS: Record<AgeGroup, number> = {
+const EXEMPTION_LIMITS_OLD_REGIME: Record<AgeGroup, number> = {
   "<60": 250000,
   "60-80": 300000,
   ">80": 500000,
 };
 
+const REBATE_87A_LIMIT_OLD_REGIME = 500000;
+const REBATE_87A_AMOUNT_OLD_REGIME = 12500;
 const ASSESSMENT_YEARS = ["2020-21", "2021-22", "2022-23", "2023-24", "2024-25"];
 
 const IncomeTaxCalculator = () => {
@@ -78,8 +80,8 @@ const IncomeTaxCalculator = () => {
       return;
     }
 
-    const taxableIncomeOld = Math.max(0, income - EXEMPTION_LIMITS[age] - (taxRegime === "old" ? deductions : 0));
-    const taxableIncomeNew = Math.max(0, income - EXEMPTION_LIMITS[age]);
+    const taxableIncomeOld = Math.max(0, income - EXEMPTION_LIMITS_OLD_REGIME[age] - (taxRegime === "old" ? deductions : 0));
+    const taxableIncomeNew = Math.max(0, income - EXEMPTION_LIMITS_OLD_REGIME[age]);
 
     const oldTax = calculateTaxForRegime(taxableIncomeOld, TAX_SLABS_OLD);
     setOldRegimeTax(oldTax);
@@ -536,7 +538,7 @@ const IncomeTaxCalculator = () => {
                     Less: Tax Rebate u/s 87A:
                   </span>
                   <span className="font-medium text-green-600">
-                    {age === "<60" ? formatINR(0) : "Not applicable"}
+                    {age === "<60" ? formatINR(REBATE_87A_AMOUNT_OLD_REGIME) : "Not applicable"}
                   </span>
                 </div>
 
@@ -545,7 +547,7 @@ const IncomeTaxCalculator = () => {
                     Net Tax after Rebate:
                   </span>
                   <span className="font-medium text-green-600">
-                    {formatINR(taxRegime === "old" ? oldRegimeTax : newRegimeTax)}
+                    {formatINR(taxRegime === "old" ? oldRegimeTax - REBATE_87A_AMOUNT_OLD_REGIME : newRegimeTax)}
                   </span>
                 </div>
 

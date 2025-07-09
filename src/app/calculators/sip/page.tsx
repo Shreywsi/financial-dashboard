@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react"; // Added useCallback
 import {
   PieChart,
   Pie,
@@ -35,18 +35,22 @@ export default function SIPInvestmentCalculator() {
   const [investedAmount, setInvestedAmount] = useState<number>(0);
   const [estimatedReturns, setEstimatedReturns] = useState<number>(0);
   const [totalValue, setTotalValue] = useState<number>(0);
-  const [chartData, setChartData] = useState<ChartData[]>([]);
+  // Initialized chartData with default values
+  const [chartData, setChartData] = useState<ChartData[]>([
+    { name: "Invested Amount", value: 0 },
+    { name: "Estimated Returns", value: 0 },
+  ]);
   const [sipGrowthSchedule, setSipGrowthSchedule] = useState<SipGrowthRow[]>([]);
   const [showSchedule, setShowSchedule] = useState<boolean>(true);
 
-  // Format currency
-  const formatINR = (value: number): string => {
+  // Format currency - wrapped in useCallback for stability
+  const formatINR = useCallback((value: number): string => {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
       currency: "INR",
       maximumFractionDigits: 0,
     }).format(value);
-  };
+  }, []); // No dependencies, so it's created once
 
   // Main calculation effect for SIP
   useEffect(() => {
@@ -54,6 +58,34 @@ export default function SIPInvestmentCalculator() {
     const annualRate = expectedReturnRate / 100; // Convert % to decimal
     const monthlyRate = annualRate / 12; // Monthly return rate
     const totalMonths = investmentTenureYears * 12 + investmentTenureMonths;
+
+    // Helper function for schedule generation, defined inside useEffect
+    // This way it automatically "sees" the latest state values without needing useCallback dependencies
+    const generateSIPGrowthSchedule = (
+      currentMonthlyInvestment: number, // renamed parameter for clarity
+      currentMonthlyRate: number,     // renamed parameter for clarity
+      currentTotalMonths: number      // renamed parameter for clarity
+    ): void => {
+      const schedule: SipGrowthRow[] = [];
+      let currentTotalValue = 0;
+      let currentInvested = 0;
+
+      for (let month = 1; month <= currentTotalMonths; month++) {
+        currentTotalValue = currentTotalValue * (1 + currentMonthlyRate) + currentMonthlyInvestment;
+        currentInvested += currentMonthlyInvestment;
+
+        if (month % 12 === 0 || month === currentTotalMonths) { // Add yearly data or at the very end
+          const year = Math.ceil(month / 12);
+          schedule.push({
+            year,
+            investedAmount: currentInvested,
+            estimatedReturns: currentTotalValue - currentInvested,
+            totalValue: currentTotalValue,
+          });
+        }
+      }
+      setSipGrowthSchedule(schedule);
+    };
 
     // Handle edge cases for zero investment or tenure
     if (totalMonths === 0 || p === 0) {
@@ -70,11 +102,7 @@ export default function SIPInvestmentCalculator() {
 
     // Calculate Future Value of SIP (assuming end of period payments)
     // FV = P * [((1 + r)^n - 1) / r]
-    let futureValue = p * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate);
-
-    // If you want to include returns on the last month's investment, multiply by (1+monthlyRate)
-    // This is common in some SIP calculations, but the simpler one above is also widely used.
-    // Let's stick with the simpler common one unless specified.
+    const futureValue = p * ((Math.pow(1 + monthlyRate, totalMonths) - 1) / monthlyRate); // Changed 'let' to 'const'
 
     const totalInvested = p * totalMonths;
     const totalReturns = futureValue - totalInvested;
@@ -90,34 +118,7 @@ export default function SIPInvestmentCalculator() {
     generateSIPGrowthSchedule(p, monthlyRate, totalMonths);
   }, [monthlyInvestment, expectedReturnRate, investmentTenureYears, investmentTenureMonths]);
 
-  // Generate SIP Growth Schedule (yearly summary)
-  const generateSIPGrowthSchedule = (
-    monthlyInvestment: number,
-    monthlyRate: number,
-    totalMonths: number
-  ): void => {
-    const schedule: SipGrowthRow[] = [];
-    let currentTotalValue = 0;
-    let currentInvested = 0;
-
-    for (let month = 1; month <= totalMonths; month++) {
-      currentTotalValue = currentTotalValue * (1 + monthlyRate) + monthlyInvestment;
-      currentInvested += monthlyInvestment;
-
-      if (month % 12 === 0 || month === totalMonths) { // Add yearly data or at the very end
-        const year = Math.ceil(month / 12);
-        schedule.push({
-          year,
-          investedAmount: currentInvested,
-          estimatedReturns: currentTotalValue - currentInvested,
-          totalValue: currentTotalValue,
-        });
-      }
-    }
-    setSipGrowthSchedule(schedule);
-  };
-
-  // Pie chart label renderer (reused from previous)
+  // Pie chart label renderer
   const renderCustomizedLabel = ({
     cx,
     cy,
@@ -126,7 +127,19 @@ export default function SIPInvestmentCalculator() {
     outerRadius,
     percent,
   }: PieLabelRenderProps): JSX.Element => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    // Add checks for undefined values, as Recharts can sometimes pass undefined
+    if (
+        cx === undefined || cy === undefined || midAngle === undefined ||
+        innerRadius === undefined || outerRadius === undefined || percent === undefined
+    ) {
+        return <></>; // Return empty fragment if any critical prop is missing
+    }
+
+    // Ensure innerRadius and outerRadius are numbers, as they could be strings from Recharts
+    const numInnerRadius = typeof innerRadius === 'string' ? parseFloat(innerRadius) : innerRadius;
+    const numOuterRadius = typeof outerRadius === 'string' ? parseFloat(outerRadius) : outerRadius;
+
+    const radius = numInnerRadius + (numOuterRadius - numInnerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
@@ -144,7 +157,7 @@ export default function SIPInvestmentCalculator() {
     );
   };
 
-  // Reusable slider component (reused from previous)
+  // Reusable slider component (no changes needed)
   const renderSlider = (
     label: string,
     value: number,
@@ -268,7 +281,7 @@ export default function SIPInvestmentCalculator() {
                     ))}
                   </Pie>
                   <Legend
-                    formatter={(value: string, entry: any) => (
+                    formatter={(value: string, entry: { payload: ChartData }) => ( // Fixed 'any'
                       <span className="text-gray-900 text-sm">
                         {value}: {formatINR(entry.payload.value)}
                       </span>
@@ -433,11 +446,11 @@ export default function SIPInvestmentCalculator() {
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h3 className="text-lg font-semibold mb-2 text-gray-900">Did You Know?</h3>
                   <p className="text-gray-700">
-                    An investment of ₹5,000 per month for 15 years at an expected 12% annual return can grow to over ₹25 lakhs, while your total invested amount would only be ₹9 lakhs!
+                    An investment of ₹5,000 per month for 15 years at an expected 12% annual return can grow to over ₹25 lakhs, while your total invested amount would only be ₹9 lakhs&apos;! {/* Fixed unescaped apostrophe here */}
                   </p>
                 </div>
                 <p className="mt-4 text-lg">
-                    SIPs are an ideal way for salaried individuals and new investors to build wealth over the long term, making financial goals like retirement planning, children's education, or buying a home achievable.
+                    SIPs are an ideal way for salaried individuals and new investors to build wealth over the long term, making financial goals like retirement planning, children&apos;s education, or buying a home achievable.
                 </p>
               </div>
             </div>
