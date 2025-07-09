@@ -79,6 +79,62 @@ const calculators: Calculator[] = [
     description: 'Calculate maturity amount for Fixed Deposits.',
     link: '/calculators/fd',
     category: 'savings'
+  },
+  {
+    id: 'gold-loan-emi',
+    icon: CircleDollarSign,
+    title: 'Gold Loan EMI Calculator',
+    description: 'Calculate your gold loan EMIs and total interest.',
+    link: '/calculators/gold-loan',
+    category: 'loans'
+  },
+  {
+    id: 'recurring-deposit',
+    icon: PiggyBank,
+    title: 'Recurring Deposit Calculator',
+    description: 'Calculate maturity amount for Recurring Deposits.',
+    link: '/calculators/recurring-deposit',
+    category: 'savings'
+  },
+  {
+    id: 'mudra-loan-emi',
+    icon: CircleDollarSign,
+    title: 'Mudra Loan EMI Calculator',
+    description: 'Calculate your Mudra loan EMIs and total interest.',
+    link: '/calculators/mudra-loan',
+    category: 'loans'
+  },
+  {
+    id: 'retirement-planner',
+    icon: Shield,
+    title: 'Retirement Planner',
+    description: 'Plan your retirement corpus and monthly investments.',
+    link: '/calculators/retirement-planner',
+    category: 'savings'
+  },
+  {
+    id: 'compound-interest',
+    icon: BarChart2,
+    title: 'Compound Interest Calculator',
+    description: 'Calculate maturity amount and interest for compounding.',
+    link: '/calculators/compound-interest',
+    category: 'savings'
+  },
+  {
+    id: 'nps',
+    icon: BarChart2,
+    title: 'NPS Calculator',
+    description: 'Estimate your NPS corpus, pension, and lump sum withdrawal.',
+    link: '/calculators/nps',
+    category: 'savings'
+  },
+  {
+    id: 'gratuity',
+    icon: Briefcase,
+    title: 'Gratuity Calculator',
+    description: 'Calculate your gratuity as per Indian law.',
+    link: '/calculators/gratuity',
+    category: 'savings'
   }
 ];
 
